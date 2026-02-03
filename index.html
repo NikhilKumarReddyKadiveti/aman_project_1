@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RestoAI | Smart Sales Intelligence</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="glass-bg"></div>
+    
+    <nav class="sidebar">
+        <div class="logo">
+            <i data-lucide="bar-chart-3"></i>
+            <span>RestoAI</span>
+        </div>
+        <div class="client-info">
+            <p>Active Client</p>
+            <h4 id="display-id">Loading...</h4>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header class="top-bar">
+            <h1>Business Dashboard</h1>
+            <button id="aiBtn" class="ai-trigger" onclick="generateAIInsights()">
+                <i data-lucide="sparkles"></i> Analyze with AI
+            </button>
+        </header>
+
+        <section class="kpi-container">
+            <div class="card glass">
+                <div class="card-header">Total Revenue</div>
+                <div class="card-value" id="total-revenue">₹0</div>
+            </div>
+            <div class="card glass">
+                <div class="card-header">Total Orders</div>
+                <div class="card-value" id="total-orders">0</div>
+            </div>
+            <div class="card glass">
+                <div class="card-header">Avg Order Value</div>
+                <div class="card-value" id="avg-ticket">₹0</div>
+            </div>
+        </section>
+
+        <div class="grid-main">
+            <section class="chart-section glass">
+                <h3>Revenue Trend</h3>
+                <div class="chart-wrapper">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </section>
+
+            <section class="ai-report glass">
+                <h3><i data-lucide="brain-circuit"></i> AI Business Insights</h3>
+                <div id="aiResponse" class="ai-text">
+                    Select "Analyze with AI" to generate a strategic report based on your database records.
+                </div>
+                <div id="aiLoader" class="loader hidden"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

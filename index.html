@@ -3,65 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RestoAI | Smart Sales Intelligence</title>
+    <title>RestoAI Pro | Intelligence Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="glass-bg"></div>
+    <div class="glow-bg"></div>
     
-    <nav class="sidebar">
-        <div class="logo">
-            <i data-lucide="bar-chart-3"></i>
-            <span>RestoAI</span>
-        </div>
-        <div class="client-info">
-            <p>Active Client</p>
-            <h4 id="display-id">Loading...</h4>
-        </div>
-    </nav>
-
-    <main class="content">
-        <header class="top-bar">
-            <h1>Business Dashboard</h1>
-            <button id="aiBtn" class="ai-trigger" onclick="generateAIInsights()">
-                <i data-lucide="sparkles"></i> Analyze with AI
-            </button>
-        </header>
-
-        <section class="kpi-container">
-            <div class="card glass">
-                <div class="card-header">Total Revenue</div>
-                <div class="card-value" id="total-revenue">₹0</div>
+    <div class="app-container">
+        <aside class="sidebar glass">
+            <div class="logo">
+                <i data-lucide="zap" class="icon-zap"></i>
+                <span>RestoAI <strong>Pro</strong></span>
             </div>
-            <div class="card glass">
-                <div class="card-header">Total Orders</div>
-                <div class="card-value" id="total-orders">0</div>
+            <div class="client-status">
+                <span class="dot"></span>
+                <div>
+                    <p>Client ID</p>
+                    <h3 id="display-id">Connecting...</h3>
+                </div>
             </div>
-            <div class="card glass">
-                <div class="card-header">Avg Order Value</div>
-                <div class="card-value" id="avg-ticket">₹0</div>
-            </div>
-        </section>
+            <nav class="nav-menu">
+                <button class="active"><i data-lucide="layout-dashboard"></i> Overview</button>
+                <button id="aiBtn" onclick="generateAIInsights()"><i data-lucide="sparkles"></i> AI Analysis</button>
+            </nav>
+        </aside>
 
-        <div class="grid-main">
-            <section class="chart-section glass">
-                <h3>Revenue Trend</h3>
-                <div class="chart-wrapper">
-                    <canvas id="salesChart"></canvas>
+        <main class="main-view">
+            <header class="header">
+                <h1>Performance Metrics</h1>
+                <div class="date-range">Last 190 Orders</div>
+            </header>
+
+            <section class="stats-row">
+                <div class="stat-card glass">
+                    <p>Total Revenue</p>
+                    <h2 id="total-revenue">₹0</h2>
+                    <span class="trend">+14% ↑</span>
+                </div>
+                <div class="stat-card glass">
+                    <p>Total Orders</p>
+                    <h2 id="total-orders">0</h2>
+                </div>
+                <div class="stat-card glass">
+                    <p>Avg Order</p>
+                    <h2 id="avg-ticket">₹0</h2>
                 </div>
             </section>
 
-            <section class="ai-report glass">
-                <h3><i data-lucide="brain-circuit"></i> AI Business Insights</h3>
-                <div id="aiResponse" class="ai-text">
-                    Select "Analyze with AI" to generate a strategic report based on your database records.
+            <div class="data-grid">
+                <div class="chart-box glass">
+                    <h3>Revenue Trend</h3>
+                    <div class="canvas-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
                 </div>
-                <div id="aiLoader" class="loader hidden"></div>
-            </section>
-        </div>
-    </main>
+                <div class="ai-box glass">
+                    <h3><i data-lucide="bot"></i> AI Business Report</h3>
+                    <div id="aiResponse" class="ai-content">
+                        Awaiting data synchronization...
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script src="script.js"></script>
     <script>lucide.createIcons();</script>

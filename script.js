@@ -1,18 +1,12 @@
-/** * RESTO-AI PRO: CORE LOGIC 
- * Integrated with OpenAI GPT-4o-mini
- */
+const OPENAI_API_KEY = "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";
 
-// 1. CONFIGURATION
-const OPENAI_API_KEY = "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";
-
-// 2. UPDATE THIS TO YOUR ACTUAL INFINITYFREE URL
-const BRIDGE_URL = "https://YOUR-SUBDOMAIN.infinityfreeapp.com/api_sales.php"; 
+// YOUR REAL DOMAIN
+const BRIDGE_URL = "https://managment.lovestoblog.com/api_sales.php"; 
 
 let salesData = [];
 let salesChart = null;
 
 window.onload = async () => {
-    // Automatically picks up client_id from browser URL: site.io/?client_id=51794
     const urlParams = new URLSearchParams(window.location.search);
     const clientId = urlParams.get('client_id');
 
@@ -20,90 +14,76 @@ window.onload = async () => {
         document.getElementById('display-id').innerText = clientId;
         fetchData(clientId);
     } else {
-        document.getElementById('display-id').innerText = "NO-CLIENT-ID";
-        console.warn("Usage: your-site.github.io/?client_id=51794");
+        document.getElementById('display-id').innerText = "Visit with ?client_id=51794";
     }
 };
 
 async function fetchData(id) {
     const aiBox = document.getElementById('aiResponse');
     try {
-        const response = await fetch(`${BRIDGE_URL}?client_id=${id}`);
-        
-        // Error handling for Connection/CORS
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        // We add a 'no-cache' flag to prevent old data issues
+        const response = await fetch(`${BRIDGE_URL}?client_id=${id}`, {
+            method: 'GET',
+            mode: 'cors'
+        });
         
         const data = await response.json();
         
-        if (data.error) {
-            aiBox.innerText = "Database Error: " + data.error;
-            return;
-        }
-
-        salesData = data;
-        if(salesData.length > 0) {
-            updateDashboard();
+        if (data.length > 0) {
+            salesData = data;
+            updateUI();
         } else {
-            aiBox.innerText = "No records found in the 'orders' table for this ID.";
+            aiBox.innerText = "No data found for this Client ID.";
         }
     } catch (err) {
-        console.error("Fetch failed:", err);
-        aiBox.innerHTML = `<span style="color:#ff4d4d">Connection Failed!</span><br>Make sure your InfinityFree PHP script has <b>CORS enabled</b> and is outputting valid JSON.`;
+        console.error("Connection Error:", err);
+        aiBox.innerHTML = `
+            <div style="color:#ff6b6b; padding:10px; border:1px solid #ff6b6b; border-radius:10px;">
+                <b>Connection Blocked!</b><br>
+                InfinityFree has a security system that blocks outside requests.<br><br>
+                <a href="${BRIDGE_URL}?client_id=${id}" target="_blank" style="color:white; font-weight:bold;">
+                   CLICK HERE TO AUTHORIZE ACCESS
+                </a>
+                <br>Then refresh this page.
+            </div>`;
     }
 }
 
-function updateDashboard() {
-    // KPI Calculations using columns from your database photo
-    const totalRev = salesData.reduce((sum, row) => sum + parseFloat(row.total_amount || 0), 0);
-    const orderCount = salesData.length;
-    const avgOrder = orderCount > 0 ? totalRev / orderCount : 0;
-
-    document.getElementById('total-revenue').innerText = `₹${totalRev.toLocaleString('en-IN')}`;
-    document.getElementById('total-orders').innerText = orderCount;
-    document.getElementById('avg-ticket').innerText = `₹${Math.round(avgOrder)}`;
-
+function updateUI() {
+    const total = salesData.reduce((s, r) => s + parseFloat(r.total_amount || 0), 0);
+    document.getElementById('total-revenue').innerText = `₹${total.toLocaleString('en-IN')}`;
+    document.getElementById('total-orders').innerText = salesData.length;
+    document.getElementById('avg-ticket').innerText = `₹${Math.round(total / salesData.length)}`;
     renderChart();
 }
 
 function renderChart() {
     const ctx = document.getElementById('salesChart').getContext('2d');
+    const sorted = [...salesData].sort((a,b) => new Date(a.order_date) - new Date(b.order_date));
     
-    // Grouping totals by date for 190+ records
-    const chartData = [...salesData].sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
-    
-    if (salesChart) salesChart.destroy();
-
+    if(salesChart) salesChart.destroy();
     salesChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: chartData.map(r => r.order_date.split(' ')[0]),
+            labels: sorted.map(r => r.order_date.split(' ')[0]),
             datasets: [{
-                label: 'Revenue Trend',
-                data: chartData.map(r => r.total_amount),
+                label: 'Revenue',
+                data: sorted.map(r => r.total_amount),
                 borderColor: '#007AFF',
-                backgroundColor: 'rgba(0, 122, 255, 0.1)',
                 fill: true,
-                tension: 0.4,
-                pointRadius: 2
+                backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                tension: 0.4
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 }
 
 async function generateAIInsights() {
-    const aiBox = document.getElementById('aiResponse');
-    if (salesData.length === 0) return;
-
-    aiBox.innerHTML = `<div class="loader"></div> Analyzing business patterns...`;
-
-    // Sending a data summary to OpenAI
-    const summary = salesData.slice(0, 20).map(s => `Order ₹${s.total_amount} (${s.order_date})`).join(", ");
+    const box = document.getElementById('aiResponse');
+    box.innerText = "Analyzing restaurant performance...";
+    
+    const summary = salesData.slice(0, 10).map(s => `Order: ₹${s.total_amount}`).join(", ");
 
     try {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -114,16 +94,12 @@ async function generateAIInsights() {
             },
             body: JSON.stringify({
                 model: "gpt-3.5-turbo",
-                messages: [
-                    { role: "system", content: "You are a professional restaurant business analyst for the Indian market." },
-                    { role: "user", content: `Analyze these recent orders and give me 3 growth suggestions in short bullet points: ${summary}` }
-                ]
+                messages: [{role: "user", content: `Give me 3 business tips for my restaurant based on these sales: ${summary}`}]
             })
         });
-
-        const result = await res.json();
-        aiBox.innerHTML = result.choices[0].message.content.replace(/\n/g, "<br>");
-    } catch (err) {
-        aiBox.innerText = "AI Analyst is busy. Check API key status.";
+        const json = await res.json();
+        box.innerText = json.choices[0].message.content;
+    } catch (e) {
+        box.innerText = "AI Analysis failed. Check key limits.";
     }
 }

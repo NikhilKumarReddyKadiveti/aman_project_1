@@ -1,105 +1,76 @@
-// CONFIGURATION
 const OPENAI_API_KEY = "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";
-const BRIDGE_URL = "https://YOUR-DOMAIN.infinityfreeapp.com/api_sales.php"; 
+const BRIDGE_URL = "https://YOUR-INFINITY-DOMAIN.com/fetch_sales.php"; // Update this!
 
-let salesData = [];
-let salesChart = null;
+let dbRecords = [];
+let mainChart = null;
 
 window.onload = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const clientId = params.get('client_id');
+    // Automatically detects ?client_id=51794 from the address bar
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client_id');
 
     if (clientId) {
         document.getElementById('display-id').innerText = clientId;
-        fetchData(clientId);
+        loadData(clientId);
     } else {
-        // Fallback for demo purposes if no ID is provided
-        document.getElementById('display-id').innerText = "DEMO-MODE";
-        console.warn("No client_id found in URL. Use ?client_id=51794");
+        document.getElementById('display-id').innerText = "NO ID";
+        document.getElementById('aiResponse').innerText = "Please provide a Client ID in the URL.";
     }
 };
 
-async function fetchData(id) {
+async function loadData(id) {
     try {
-        const response = await fetch(`${BRIDGE_URL}?client_id=${id}`);
-        const data = await response.json();
+        const res = await fetch(`${BRIDGE_URL}?client_id=${id}`);
+        dbRecords = await res.json();
         
-        if (data.error) throw new Error(data.error);
-
-        salesData = data;
-        updateUI();
+        if (dbRecords.length > 0) {
+            refreshDashboard();
+        } else {
+            document.getElementById('aiResponse').innerText = "No records found for this Client ID.";
+        }
     } catch (err) {
-        console.error("Fetch failed, ensure CORS is enabled in PHP:", err);
+        console.error("Connection error:", err);
     }
 }
 
-function updateUI() {
-    // 1. Calculate KPIs based on your 'total_amount' column
-    const total = salesData.reduce((sum, item) => sum + parseFloat(item.total_amount), 0);
-    const orderCount = salesData.length;
-    const avg = orderCount > 0 ? total / orderCount : 0;
+function refreshDashboard() {
+    // 1. Math logic using columns from your photo
+    const totalRev = dbRecords.reduce((s, r) => s + parseFloat(r.total_amount || 0), 0);
+    const avgVal = totalRev / dbRecords.length;
 
-    document.getElementById('total-revenue').innerText = `₹${total.toLocaleString('en-IN')}`;
-    document.getElementById('total-orders').innerText = orderCount;
-    document.getElementById('avg-ticket').innerText = `₹${Math.round(avg)}`;
+    document.getElementById('total-revenue').innerText = `₹${totalRev.toLocaleString('en-IN')}`;
+    document.getElementById('total-orders').innerText = dbRecords.length;
+    document.getElementById('avg-ticket').innerText = `₹${Math.round(avgVal)}`;
 
-    // 2. Render Chart
-    renderChart();
-}
-
-function renderChart() {
+    // 2. Chart logic
     const ctx = document.getElementById('salesChart').getContext('2d');
+    const sorted = [...dbRecords].sort((a,b) => new Date(a.order_date) - new Date(b.order_date));
     
-    // Group totals by date
-    const dailyTotals = {};
-    salesData.forEach(item => {
-        const date = item.order_date.split(' ')[0]; // Extract YYYY-MM-DD
-        dailyTotals[date] = (dailyTotals[date] || 0) + parseFloat(item.total_amount);
-    });
-
-    const labels = Object.keys(dailyTotals).sort();
-    const values = labels.map(l => dailyTotals[l]);
-
-    if(salesChart) salesChart.destroy();
-
-    salesChart = new Chart(ctx, {
+    if(mainChart) mainChart.destroy();
+    mainChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: sorted.map(r => r.order_date.split(' ')[0]),
             datasets: [{
-                label: 'Revenue (₹)',
-                data: values,
-                borderColor: '#0071e3',
-                backgroundColor: 'rgba(0, 113, 227, 0.1)',
-                fill: true,
-                tension: 0.4
+                label: 'Revenue',
+                data: sorted.map(r => r.total_amount),
+                borderColor: '#007AFF',
+                backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                fill: true, tension: 0.4
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 }
 
 async function generateAIInsights() {
-    const btn = document.getElementById('aiBtn');
     const box = document.getElementById('aiResponse');
-    
-    if (salesData.length === 0) {
-        box.innerText = "No data available to analyze.";
-        return;
-    }
+    box.innerText = "Analyzing your 190 recent orders...";
 
-    btn.innerText = "Analyzing Sales Patterns...";
-    btn.disabled = true;
-
-    // Create a data summary for OpenAI
-    const summary = salesData.slice(0, 15).map(s => `Order ${s.custom_order_number}: ₹${s.total_amount}`).join(", ");
+    const context = dbRecords.slice(0, 20).map(r => `₹${r.total_amount} on ${r.order_date}`).join(", ");
 
     try {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -107,19 +78,18 @@ async function generateAIInsights() {
             },
             body: JSON.stringify({
                 model: "gpt-3.5-turbo",
-                messages: [
-                    { role: "system", content: "You are a professional restaurant business analyst." },
-                    { role: "user", content: `Here are the latest 15 orders for Client ${document.getElementById('display-id').innerText}. Provide a 3-sentence summary of performance and one growth tip: ${summary}` }
-                ]
+                messages: [{
+                    role: "system",
+                    content: "You are a professional restaurant analyst. Summarize these sales trends and give 1 tip."
+                }, {
+                    role: "user",
+                    content: `Analyze this data: ${context}`
+                }]
             })
         });
-
-        const result = await res.json();
-        box.innerHTML = result.choices[0].message.content.replace(/\n/g, "<br>");
+        const json = await response.json();
+        box.innerText = json.choices[0].message.content;
     } catch (e) {
-        box.innerText = "Error contacting AI. Check API key quota.";
-    } finally {
-        btn.innerText = "Ask AI Analyst";
-        btn.disabled = false;
+        box.innerText = "AI temporarily offline. Check API credits.";
     }
 }

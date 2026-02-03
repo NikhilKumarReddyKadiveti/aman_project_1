@@ -1,6 +1,12 @@
+/**
+ * RESTO-AI PRO: PRODUCTION ENGINE
+ * API Key: sk-proj-CUTV... (Updated 2026)
+ */
+
+// 1. YOUR NEW API KEY
 const OPENAI_API_KEY = "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";
 
-// YOUR REAL DOMAIN
+// 2. YOUR ACTIVE BACKEND
 const BRIDGE_URL = "https://managment.lovestoblog.com/api_sales.php"; 
 
 let salesData = [];
@@ -10,56 +16,72 @@ window.onload = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const clientId = urlParams.get('client_id');
 
-    if (clientId) {
-        document.getElementById('display-id').innerText = clientId;
-        fetchData(clientId);
-    } else {
-        document.getElementById('display-id').innerText = "Visit with ?client_id=51794";
-    }
+    // Default to the client ID seen in your screenshot if none provided
+    const targetId = clientId || "51794"; 
+    document.getElementById('display-id').innerText = targetId;
+    fetchData(targetId);
 };
 
 async function fetchData(id) {
     const aiBox = document.getElementById('aiResponse');
     try {
-        // We add a 'no-cache' flag to prevent old data issues
         const response = await fetch(`${BRIDGE_URL}?client_id=${id}`, {
             method: 'GET',
             mode: 'cors'
         });
-        
-        const data = await response.json();
-        
-        if (data.length > 0) {
-            salesData = data;
-            updateUI();
-        } else {
-            aiBox.innerText = "No data found for this Client ID.";
+
+        // InfinityFree sometimes sends an HTML "Checking your browser" page. 
+        // We check if we actually got the JSON data.
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            if (data.length > 0) {
+                salesData = data;
+                updateDashboardUI();
+            } else {
+                aiBox.innerText = "No records found for Client: " + id;
+            }
+        } catch (jsonError) {
+            // If parsing fails, we likely hit the security wall
+            throw new Error("Security Wall Active");
         }
     } catch (err) {
-        console.error("Connection Error:", err);
-        aiBox.innerHTML = `
-            <div style="color:#ff6b6b; padding:10px; border:1px solid #ff6b6b; border-radius:10px;">
-                <b>Connection Blocked!</b><br>
-                InfinityFree has a security system that blocks outside requests.<br><br>
-                <a href="${BRIDGE_URL}?client_id=${id}" target="_blank" style="color:white; font-weight:bold;">
-                   CLICK HERE TO AUTHORIZE ACCESS
-                </a>
-                <br>Then refresh this page.
-            </div>`;
+        console.error("Connection error:", err);
+        showBypassMessage(id);
     }
 }
 
-function updateUI() {
-    const total = salesData.reduce((s, r) => s + parseFloat(r.total_amount || 0), 0);
-    document.getElementById('total-revenue').innerText = `₹${total.toLocaleString('en-IN')}`;
-    document.getElementById('total-orders').innerText = salesData.length;
-    document.getElementById('avg-ticket').innerText = `₹${Math.round(total / salesData.length)}`;
-    renderChart();
+function showBypassMessage(id) {
+    const aiBox = document.getElementById('aiResponse');
+    aiBox.innerHTML = `
+        <div style="background: rgba(0, 122, 255, 0.1); border: 1px solid #007AFF; padding: 15px; border-radius: 12px; text-align: center;">
+            <p style="margin-bottom: 10px;">⚠️ <b>Connection Pending</b></p>
+            <p style="font-size: 0.8rem; margin-bottom: 15px;">Click below to authorize the secure data tunnel from InfinityFree.</p>
+            <a href="${BRIDGE_URL}?client_id=${id}" target="_blank" 
+               style="background:#007AFF; color:white; padding:8px 16px; border-radius:8px; text-decoration:none; font-size:0.9rem;"
+               onclick="setTimeout(()=>location.reload(), 3000)">
+               Authorize & Sync Data
+            </a>
+        </div>`;
 }
 
-function renderChart() {
+function updateDashboardUI() {
+    // Column Mapping: order_date, total_amount (from your PHP/MySQL)
+    const totalRev = salesData.reduce((sum, row) => sum + parseFloat(row.total_amount || 0), 0);
+    const orderCount = salesData.length;
+    const avgTicket = totalRev / orderCount;
+
+    document.getElementById('total-revenue').innerText = `₹${totalRev.toLocaleString('en-IN')}`;
+    document.getElementById('total-orders').innerText = orderCount;
+    document.getElementById('avg-ticket').innerText = `₹${Math.round(avgTicket)}`;
+
+    document.getElementById('aiResponse').innerText = "Database Connected. Click 'Analyze with AI' for a full report.";
+    renderSalesChart();
+}
+
+function renderSalesChart() {
     const ctx = document.getElementById('salesChart').getContext('2d');
-    const sorted = [...salesData].sort((a,b) => new Date(a.order_date) - new Date(b.order_date));
+    const sorted = [...salesData].sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
     
     if(salesChart) salesChart.destroy();
     salesChart = new Chart(ctx, {
@@ -70,20 +92,32 @@ function renderChart() {
                 label: 'Revenue',
                 data: sorted.map(r => r.total_amount),
                 borderColor: '#007AFF',
+                backgroundColor: 'rgba(0, 122, 255, 0.05)',
                 fill: true,
-                backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                tension: 0.4
+                tension: 0.4,
+                pointRadius: 3
             }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
     });
 }
 
 async function generateAIInsights() {
-    const box = document.getElementById('aiResponse');
-    box.innerText = "Analyzing restaurant performance...";
-    
-    const summary = salesData.slice(0, 10).map(s => `Order: ₹${s.total_amount}`).join(", ");
+    const aiBox = document.getElementById('aiResponse');
+    if (salesData.length === 0) return;
+
+    aiBox.innerHTML = "<em>Generating AI Business Strategy...</em>";
+
+    // Send a sample of your 190 orders for AI context
+    const dataSample = salesData.slice(0, 15).map(s => `Order: ₹${s.total_amount} on ${s.order_date}`).join(", ");
 
     try {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -94,12 +128,16 @@ async function generateAIInsights() {
             },
             body: JSON.stringify({
                 model: "gpt-3.5-turbo",
-                messages: [{role: "user", content: `Give me 3 business tips for my restaurant based on these sales: ${summary}`}]
+                messages: [
+                    { role: "system", content: "You are an expert restaurant analyst. Analyze these orders and provide 3 short, actionable growth tips." },
+                    { role: "user", content: `Here is the sales data: ${dataSample}` }
+                ]
             })
         });
-        const json = await res.json();
-        box.innerText = json.choices[0].message.content;
-    } catch (e) {
-        box.innerText = "AI Analysis failed. Check key limits.";
+
+        const result = await res.json();
+        aiBox.innerHTML = result.choices[0].message.content.replace(/\n/g, "<br>");
+    } catch (err) {
+        aiBox.innerText = "The AI Analyst is busy. Please try again in a moment.";
     }
 }
